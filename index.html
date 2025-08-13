@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center p-6">
+
+    <h1 class="text-2xl font-bold mb-4">Shopping Calculator</h1>
+
+    <!-- Top row -->
+    <div class="flex flex-wrap gap-4 mb-4 items-center">
+        <div>
+            <label for="currency" class="block text-sm font-semibold">Currency</label>
+            <select id="currency" class="border rounded p-2">
+                <option value="$BZD">$BZD</option>
+                <option value="$MXN ">$MXN </option>
+                <option value="$USD">$USD</option>
+            </select>
+        </div>
+        <div>
+            <label for="budget" class="block text-sm font-semibold">Budget</label>
+            <input type="number" id="budget" placeholder="Enter budget" class="border rounded p-2 w-32">
+        </div>
+        <div>
+            <label class="block text-sm font-semibold">Remaining</label>
+            <span id="remainingBudget" class="font-bold">—</span>
+        </div>
+    </div>
+
+    <!-- Input row -->
+    <div class="flex flex-wrap gap-2 mb-4">
+        <input type="text" id="itemName" placeholder="Item Name" class="border rounded p-2">
+        <input type="number" id="itemQty" placeholder="Qty" class="border rounded p-2 w-20">
+        <input type="number" id="itemPrice" placeholder="Price" step="0.01" class="border rounded p-2">
+        <button id="addItem" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Add Item</button>
+    </div>
+
+    <!-- Table -->
+    <table class="border-collapse w-full max-w-xl mb-4">
+        <thead>
+            <tr>
+                <th class="border px-4 py-2">Item</th>
+                <th class="border px-4 py-2">Qty</th>
+                <th class="border px-4 py-2">Unit Price</th>
+                <th class="border px-4 py-2">Total</th>
+                <th class="border px-4 py-2">Action</th>
+            </tr>
+        </thead>
+        <tbody id="itemList"></tbody>
+    </table>
+
+    <div class="text-lg font-bold mb-4">Grand Total: <span id="grandTotal">$BZD 0.00</span></div>
+
+    <!-- Buttons -->
+    <div class="flex gap-4">
+        <button id="exportPDF" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
+        <button id="clearAll" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Clear All</button>
+    </div>
+
+    <script>
+        let items = [];
+        let currencySymbol = "$BZD";
+        let budget = 0;
+
+        function loadItems() {
+            const saved = localStorage.getItem("shoppingItems");
+            if (saved) items = JSON.parse(saved);
+
+            const savedBudget = localStorage.getItem("shoppingBudget");
+            if (savedBudget) budget = parseFloat(savedBudget);
+
+            const savedCurrency = localStorage.getItem("shoppingCurrency");
+            if (savedCurrency) {
+                currencySymbol = savedCurrency;
+                document.getElementById("currency").value = savedCurrency;
+            }
+
+            document.getElementById("budget").value = budget || "";
+        }
+
+        function saveItems() {
+            localStorage.setItem("shoppingItems", JSON.stringify(items));
+            localStorage.setItem("shoppingBudget", budget);
+            localStorage.setItem("shoppingCurrency", currencySymbol);
+        }
+
+        function formatCurrency(amount) {
+            return `${currencySymbol} ${(Math.round(amount * 100) / 100).toFixed(2)}`;
+        }
+
+        function makeEditable(td, index, field) {
+            const input = document.createElement("input");
+            input.type = field === "name" ? "text" : "number";
+            input.value = td.textContent.replace(currencySymbol, "").trim();
+            input.className = "border p-1 w-full bg-transparent text-inherit";
+            if (field !== "name") input.step = "0.01";
+            td.textContent = "";
+            td.appendChild(input);
+            input.focus();
+
+            input.addEventListener("blur", () => {
+                let value = input.value.trim();
+                if (field !== "name") value = parseFloat(value) || 0;
+                items[index][field === "name" ? "name" : field === "quantity" ? "quantity" : "price"] = value;
+                updateDisplay();
+            });
+
+            input.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") input.blur();
+            });
+        }
+
+        function updateDisplay() {
+            const list = document.getElementById("itemList");
+            list.innerHTML = "";
+            let grandTotal = 0;
+            items.forEach((item, index) => {
+                const total = item.quantity * item.price;
+                grandTotal += total;
+                const row = document.createElement("tr");
+
+                const nameTd = document.createElement("td");
+                nameTd.className = "border px-4 py-2 cursor-pointer";
+                nameTd.textContent = item.name;
+                nameTd.addEventListener("click", () => makeEditable(nameTd, index, "name"));
+
+                const qtyTd = document.createElement("td");
+                qtyTd.className = "border px-4 py-2 cursor-pointer";
+                qtyTd.textContent = item.quantity;
+                qtyTd.addEventListener("click", () => makeEditable(qtyTd, index, "quantity"));
+
+                const priceTd = document.createElement("td");
+                priceTd.className = "border px-4 py-2 cursor-pointer";
+                priceTd.textContent = formatCurrency(item.price);
+                priceTd.addEventListener("click", () => makeEditable(priceTd, index, "price"));
+
+                const totalTd = document.createElement("td");
+                totalTd.className = "border px-4 py-2";
+                totalTd.textContent = formatCurrency(total);
+
+                const actionTd = document.createElement("td");
+                actionTd.className = "border px-4 py-2";
+                actionTd.innerHTML = `<button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">Delete</button>`;
+                actionTd.querySelector("button").addEventListener("click", () => {
+                    items.splice(index, 1);
+                    updateDisplay();
+                });
+
+                row.append(nameTd, qtyTd, priceTd, totalTd, actionTd);
+                list.appendChild(row);
+            });
+            document.getElementById("grandTotal").textContent = formatCurrency(grandTotal);
+
+            const remaining = budget ? budget - grandTotal : 0;
+            const remainingEl = document.getElementById("remainingBudget");
+            remainingEl.textContent = budget ? formatCurrency(remaining) : "—";
+            remainingEl.classList.remove("text-green-500", "text-red-500");
+            if (budget) {
+                remainingEl.classList.add(remaining >= 0 ? "text-green-500" : "text-red-500");
+            }
+
+            saveItems();
+        }
+
+        function addItem() {
+            const name = document.getElementById("itemName").value.trim();
+            const qty = parseFloat(document.getElementById("itemQty").value);
+            const price = parseFloat(document.getElementById("itemPrice").value);
+            if (!name || isNaN(qty) || isNaN(price)) return;
+            items.push({ name, quantity: qty, price });
+            document.getElementById("itemName").value = "";
+            document.getElementById("itemQty").value = "";
+            document.getElementById("itemPrice").value = "";
+            updateDisplay();
+            document.getElementById("itemName").focus();
+        }
+
+        document.getElementById("currency").addEventListener("change", (e) => {
+            currencySymbol = e.target.value;
+            updateDisplay();
+        });
+
+        document.getElementById("budget").addEventListener("input", (e) => {
+            budget = parseFloat(e.target.value) || 0;
+            updateDisplay();
+        });
+
+        document.getElementById("addItem").addEventListener("click", addItem);
+
+        ["itemName", "itemQty", "itemPrice"].forEach(id => {
+            document.getElementById(id).addEventListener("keypress", (e) => {
+                if (e.key === "Enter") addItem();
+            });
+        });
+
+        document.getElementById("clearAll").addEventListener("click", () => {
+            items = [];
+            budget = 0;
+            document.getElementById("budget").value = "";
+            updateDisplay();
+        });
+
+        document.getElementById("exportPDF").addEventListener("click", () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Shopping List", 14, 15);
+            doc.autoTable({
+                head: [['Item', 'Qty', 'Unit Price', 'Total']],
+                body: items.map(item => [
+                    item.name,
+                    item.quantity,
+                    formatCurrency(item.price),
+                    formatCurrency(item.quantity * item.price)
+                ]),
+                startY: 20
+            });
+            let grandTotal = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+            doc.text(`Grand Total: ${formatCurrency(grandTotal)}`, 14, doc.lastAutoTable.finalY + 10);
+            doc.text(`Budget: ${formatCurrency(budget)}`, 14, doc.lastAutoTable.finalY + 20);
+            doc.text(`Remaining: ${formatCurrency(budget - grandTotal)}`, 14, doc.lastAutoTable.finalY + 30);
+            doc.save("shopping-list.pdf");
+        });
+
+        loadItems();
+        updateDisplay();
+    </script>
+</body>
+</html>
