@@ -170,6 +170,33 @@ document.getElementById("clearAll").addEventListener("click", () => {
     updateDisplay();
 });
 
+// Enter key navigation
+const nameInput = document.getElementById("itemName");
+const qtyInput = document.getElementById("itemQty");
+const priceInput = document.getElementById("itemPrice");
+
+nameInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        qtyInput.focus();
+    }
+});
+
+qtyInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        priceInput.focus();
+    }
+});
+
+priceInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        addItem();
+        nameInput.focus();
+    }
+});
+
 // PDF export
 document.getElementById("exportPDF").addEventListener("click", () => {
     const { jsPDF } = window.jspdf;
