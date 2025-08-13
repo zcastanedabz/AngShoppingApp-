@@ -1,247 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Calculator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+    /* Always readable inputs & selects */
+    input, select, textarea {
+        background-color: white !important;
+        color: black !important;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline: 2px solid #3b82f6;
+    }
+
+    /* Floating theme selector */
+    #themeContainer {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 50;
+        background: white;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Make select dropdown open upward */
+    #theme {
+        direction: ltr;
+    }
+    #theme:focus {
+        position: relative;
+    }
+    #theme option {
+        direction: ltr;
+    }
+</style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center p-4">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center p-6 transition-colors duration-300">
 
-    <h1 class="text-2xl font-bold mb-4">Shopping Calculator</h1>
+<h1 class="text-2xl font-bold mb-4">Shopping Calculator</h1>
 
-    <!-- Top row -->
-    <div class="flex flex-wrap gap-4 mb-4 items-center w-full max-w-xl">
-        <div>
-            <label for="currency" class="block text-sm font-semibold">Currency</label>
-            <select id="currency" class="border rounded p-2 text-black">
-                <option value="$BZD">$BZD</option>
-                <option value="$MXN">$MXN</option>
-                <option value="$USD">$USD</option>
-            </select>
-        </div>
-        <div>
-            <label for="budget" class="block text-sm font-semibold">Budget</label>
-            <input type="number" id="budget" placeholder="Enter budget" class="border rounded p-2 w-32 text-black">
-        </div>
-        <div>
-            <label class="block text-sm font-semibold">Remaining</label>
-            <span id="remainingBudget" class="font-bold">—</span>
-        </div>
+<!-- Top row -->
+<div class="flex flex-wrap gap-4 mb-4 items-center">
+    <div>
+        <label for="currency" class="block text-sm font-semibold">Currency</label>
+        <select id="currency" class="border rounded p-2">
+            <option value="$BZD">$BZD</option>
+            <option value="$MXN">$MXN</option>
+            <option value="$USD">$USD</option>
+        </select>
     </div>
-
-    <!-- Input row -->
-    <div class="flex flex-col sm:flex-row gap-2 mb-4 w-full max-w-xl">
-        <input type="text" id="itemName" placeholder="Item Name" class="border rounded p-2 text-black flex-1">
-        <input type="number" id="itemQty" placeholder="Qty" class="border rounded p-2 w-full sm:w-20 text-black">
-        <input type="number" id="itemPrice" placeholder="Price" step="0.01" class="border rounded p-2 text-black flex-1">
-        <button id="addItem" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto">Add Item</button>
+    <div>
+        <label for="budget" class="block text-sm font-semibold">Budget</label>
+        <input type="number" id="budget" placeholder="Enter budget" class="border rounded p-2 w-32">
     </div>
-
-    <!-- Table -->
-    <div class="overflow-x-auto w-full max-w-xl">
-        <table class="border-collapse w-full mb-4">
-            <thead>
-                <tr>
-                    <th class="border px-4 py-2">Item</th>
-                    <th class="border px-4 py-2">Qty</th>
-                    <th class="border px-4 py-2">Unit Price</th>
-                    <th class="border px-4 py-2">Total</th>
-                    <th class="border px-4 py-2">Action</th>
-                </tr>
-            </thead>
-            <tbody id="itemList"></tbody>
-        </table>
+    <div>
+        <label class="block text-sm font-semibold">Remaining</label>
+        <span id="remainingBudget" class="font-bold">$BZD 0.00</span>
     </div>
+</div>
 
-    <div class="text-lg font-bold mb-4">Grand Total: <span id="grandTotal">$BZD 0.00</span></div>
+<!-- Input row -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-4 w-full max-w-xl">
+    <input type="text" id="itemName" placeholder="Item Name" class="border rounded p-2 mb-2 sm:mb-0 flex-1">
+    <input type="number" id="itemQty" placeholder="Qty" class="border rounded p-2 mb-2 sm:mb-0 w-20">
+    <input type="number" id="itemPrice" placeholder="Price" step="0.01" class="border rounded p-2 mb-2 sm:mb-0 flex-1">
+    <button id="addItem" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Add Item</button>
+</div>
 
-    <!-- Buttons -->
-    <div class="flex flex-wrap gap-4">
-        <button id="exportPDF" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
-        <button id="clearAll" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Clear All</button>
-    </div>
+<!-- Table -->
+<table class="border-collapse w-full max-w-xl mb-4">
+    <thead>
+        <tr>
+            <th class="border px-4 py-2">Item</th>
+            <th class="border px-4 py-2">Qty</th>
+            <th class="border px-4 py-2">Unit Price</th>
+            <th class="border px-4 py-2">Total</th>
+            <th class="border px-4 py-2">Action</th>
+        </tr>
+    </thead>
+    <tbody id="itemList"></tbody>
+</table>
 
-    <script>
-        let items = [];
-        let currencySymbol = "$BZD";
-        let budget = 0;
+<div class="text-lg font-bold mb-4">Grand Total: <span id="grandTotal">$BZD 0.00</span></div>
 
-        function loadItems() {
-            const saved = localStorage.getItem("shoppingItems");
-            if (saved) items = JSON.parse(saved);
+<!-- Buttons -->
+<div class="flex gap-4 mb-20">
+    <button id="exportPDF" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
+    <button id="clearAll" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Clear All</button>
+</div>
 
-            const savedBudget = localStorage.getItem("shoppingBudget");
-            if (savedBudget) budget = parseFloat(savedBudget);
+<!-- Theme Selector at Bottom-Right -->
+<div id="themeContainer">
+    <label for="theme" class="block text-sm font-semibold mb-1">Theme</label>
+    <select id="theme" class="border rounded p-2"
+        onfocus="this.size=5" onblur="this.size=1" onchange="this.size=1; this.blur();">
+        <option value="default">Default</option>
+        <option value="ocean">Ocean</option>
+        <option value="forest">Forest</option>
+        <option value="sunset">Sunset</option>
+        <option value="midnight">Midnight</option>
+    </select>
+</div>
 
-            const savedCurrency = localStorage.getItem("shoppingCurrency");
-            if (savedCurrency) {
-                currencySymbol = savedCurrency;
-                document.getElementById("currency").value = savedCurrency;
-            }
+<script>
+let items = [];
+let currencySymbol = "$BZD";
+let budget = 0;
 
-            document.getElementById("budget").value = budget || "";
-        }
+// Themes
+const themes = {
+    default: { bg: "bg-gray-100", text: "text-gray-900", darkBg: "dark:bg-gray-900", darkText: "dark:text-gray-100" },
+    ocean: { bg: "bg-blue-100", text: "text-blue-900", darkBg: "dark:bg-blue-900", darkText: "dark:text-blue-100" },
+    forest: { bg: "bg-green-100", text: "text-green-900", darkBg: "dark:bg-green-900", darkText: "dark:text-green-100" },
+    sunset: { bg: "bg-orange-100", text: "text-orange-900", darkBg: "dark:bg-orange-900", darkText: "dark:text-orange-100" },
+    midnight: { bg: "bg-gray-800", text: "text-white", darkBg: "dark:bg-black", darkText: "dark:text-white" }
+};
 
-        function saveItems() {
-            localStorage.setItem("shoppingItems", JSON.stringify(items));
-            localStorage.setItem("shoppingBudget", budget);
-            localStorage.setItem("shoppingCurrency", currencySymbol);
-        }
+function applyTheme(themeKey) {
+    const theme = themes[themeKey] || themes.default;
+    document.body.className = `${theme.bg} ${theme.text} min-h-screen flex flex-col items-center p-6 transition-colors duration-300 ${theme.darkBg} ${theme.darkText}`;
+    localStorage.setItem("shoppingTheme", themeKey);
+}
 
-        function formatCurrency(amount) {
-            return `${currencySymbol} ${(Math.round(amount * 100) / 100).toFixed(2)}`;
-        }
+// Load saved data
+function loadItems() {
+    const saved = localStorage.getItem("shoppingItems");
+    if (saved) items = JSON.parse(saved);
 
-        function makeEditable(td, index, field) {
-            const input = document.createElement("input");
-            input.type = field === "name" ? "text" : "number";
-            input.value = td.textContent.replace(currencySymbol, "").trim();
-            input.className = "border p-1 w-full bg-transparent text-black";
-            if (field !== "name") input.step = "0.01";
-            td.textContent = "";
-            td.appendChild(input);
-            input.focus();
+    const savedBudget = localStorage.getItem("shoppingBudget");
+    if (savedBudget) budget = parseFloat(savedBudget);
+    document.getElementById("budget").value = budget || "";
 
-            input.addEventListener("blur", () => {
-                let value = input.value.trim();
-                if (field !== "name") value = parseFloat(value) || 0;
-                items[index][field === "name" ? "name" : field === "quantity" ? "quantity" : "price"] = value;
-                updateDisplay();
-            });
+    const savedTheme = localStorage.getItem("shoppingTheme") || "default";
+    document.getElementById("theme").value = savedTheme;
+    applyTheme(savedTheme);
+}
 
-            input.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") input.blur();
-            });
-        }
+// Save data
+function saveItems() {
+    localStorage.setItem("shoppingItems", JSON.stringify(items));
+    localStorage.setItem("shoppingBudget", budget);
+}
 
-        function updateDisplay() {
-            const list = document.getElementById("itemList");
-            list.innerHTML = "";
-            let grandTotal = 0;
-            items.forEach((item, index) => {
-                const total = item.quantity * item.price;
-                grandTotal += total;
-                const row = document.createElement("tr");
+function formatCurrency(amount) {
+    return `${currencySymbol} ${amount.toFixed(2)}`;
+}
 
-                const nameTd = document.createElement("td");
-                nameTd.className = "border px-4 py-2 cursor-pointer";
-                nameTd.textContent = item.name;
-                nameTd.addEventListener("click", () => makeEditable(nameTd, index, "name"));
+function updateDisplay() {
+    const list = document.getElementById("itemList");
+    list.innerHTML = "";
+    let grandTotal = 0;
 
-                const qtyTd = document.createElement("td");
-                qtyTd.className = "border px-4 py-2 cursor-pointer";
-                qtyTd.textContent = item.quantity;
-                qtyTd.addEventListener("click", () => makeEditable(qtyTd, index, "quantity"));
+    items.forEach((item, index) => {
+        const total = item.quantity * item.price;
+        grandTotal += total;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td class="border px-4 py-2" contenteditable="true" onblur="editItem(${index}, 'name', this.innerText)">${item.name}</td>
+            <td class="border px-4 py-2" contenteditable="true" onblur="editItem(${index}, 'quantity', this.innerText)">${item.quantity}</td>
+            <td class="border px-4 py-2" contenteditable="true" onblur="editItem(${index}, 'price', this.innerText)">${item.price}</td>
+            <td class="border px-4 py-2">${formatCurrency(total)}</td>
+            <td class="border px-4 py-2">
+                <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded" onclick="deleteItem(${index})">Delete</button>
+            </td>
+        `;
+        list.appendChild(row);
+    });
 
-                const priceTd = document.createElement("td");
-                priceTd.className = "border px-4 py-2 cursor-pointer";
-                priceTd.textContent = formatCurrency(item.price);
-                priceTd.addEventListener("click", () => makeEditable(priceTd, index, "price"));
+    document.getElementById("grandTotal").textContent = formatCurrency(grandTotal);
 
-                const totalTd = document.createElement("td");
-                totalTd.className = "border px-4 py-2";
-                totalTd.textContent = formatCurrency(total);
+    const remaining = budget - grandTotal;
+    const remainingEl = document.getElementById("remainingBudget");
+    remainingEl.textContent = formatCurrency(remaining);
+    remainingEl.classList.remove("text-green-500", "text-red-500");
+    remainingEl.classList.add(remaining >= 0 ? "text-green-500" : "text-red-500");
 
-                const actionTd = document.createElement("td");
-                actionTd.className = "border px-4 py-2";
-                actionTd.innerHTML = `<button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">Delete</button>`;
-                actionTd.querySelector("button").addEventListener("click", () => {
-                    items.splice(index, 1);
-                    updateDisplay();
-                });
+    saveItems();
+}
 
-                row.append(nameTd, qtyTd, priceTd, totalTd, actionTd);
-                list.appendChild(row);
-            });
-            document.getElementById("grandTotal").textContent = formatCurrency(grandTotal);
+function editItem(index, field, value) {
+    if (field === "quantity" || field === "price") {
+        value = parseFloat(value) || 0;
+    }
+    items[index][field] = field === "name" ? value.trim() : value;
+    updateDisplay();
+}
 
-            const remaining = budget ? budget - grandTotal : 0;
-            const remainingEl = document.getElementById("remainingBudget");
-            remainingEl.textContent = budget ? formatCurrency(remaining) : "—";
-            remainingEl.classList.remove("text-green-500", "text-red-500");
-            if (budget) {
-                remainingEl.classList.add(remaining >= 0 ? "text-green-500" : "text-red-500");
-            }
+function addItem() {
+    const name = document.getElementById("itemName").value.trim();
+    const qty = parseFloat(document.getElementById("itemQty").value);
+    const price = parseFloat(document.getElementById("itemPrice").value);
+    if (!name || isNaN(qty) || isNaN(price)) return;
+    items.push({ name, quantity: qty, price });
+    document.getElementById("itemName").value = "";
+    document.getElementById("itemQty").value = "";
+    document.getElementById("itemPrice").value = "";
+    updateDisplay();
+    document.getElementById("itemName").focus();
+}
 
-            saveItems();
-        }
+function deleteItem(index) {
+    items.splice(index, 1);
+    updateDisplay();
+}
 
-        function addItem() {
-            const name = document.getElementById("itemName").value.trim();
-            const qty = parseFloat(document.getElementById("itemQty").value);
-            const price = parseFloat(document.getElementById("itemPrice").value);
-            if (!name || isNaN(qty) || isNaN(price)) return;
-            items.push({ name, quantity: qty, price });
-            document.getElementById("itemName").value = "";
-            document.getElementById("itemQty").value = "";
-            document.getElementById("itemPrice").value = "";
-            updateDisplay();
-            document.getElementById("itemName").focus();
-        }
+// Event Listeners
+document.getElementById("currency").addEventListener("change", e => {
+    currencySymbol = e.target.value;
+    updateDisplay();
+});
 
-        document.getElementById("currency").addEventListener("change", (e) => {
-            currencySymbol = e.target.value;
-            updateDisplay();
-        });
+document.getElementById("budget").addEventListener("input", e => {
+    budget = parseFloat(e.target.value) || 0;
+    updateDisplay();
+});
 
-        document.getElementById("budget").addEventListener("input", (e) => {
-            budget = parseFloat(e.target.value) || 0;
-            updateDisplay();
-        });
+document.getElementById("addItem").addEventListener("click", addItem);
 
-        document.getElementById("addItem").addEventListener("click", addItem);
+// Enter key navigation
+document.getElementById("itemName").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("itemQty").focus();
+    }
+});
+document.getElementById("itemQty").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("itemPrice").focus();
+    }
+});
+document.getElementById("itemPrice").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        addItem();
+    }
+});
 
-        // Enter key navigation
-        const nameInput = document.getElementById("itemName");
-        const qtyInput = document.getElementById("itemQty");
-        const priceInput = document.getElementById("itemPrice");
+document.getElementById("clearAll").addEventListener("click", () => {
+    items = [];
+    budget = 0;
+    document.getElementById("budget").value = "";
+    updateDisplay();
+});
 
-        nameInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") qtyInput.focus();
-        });
-        qtyInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") priceInput.focus();
-        });
-        priceInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                addItem();
-                nameInput.focus();
-            }
-        });
+document.getElementById("theme").addEventListener("change", e => {
+    applyTheme(e.target.value);
+});
 
-        document.getElementById("clearAll").addEventListener("click", () => {
-            items = [];
-            budget = 0;
-            document.getElementById("budget").value = "";
-            updateDisplay();
-        });
+// PDF export
+document.getElementById("exportPDF").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const fontSize = 12;
+    doc.setFontSize(fontSize);
+    doc.text("Shopping List", 14, 15);
+    doc.autoTable({
+        head: [['Item', 'Qty', 'Unit Price', 'Total']],
+        body: items.map(item => [
+            item.name,
+            item.quantity,
+            formatCurrency(item.price),
+            formatCurrency(item.quantity * item.price)
+        ]),
+        startY: 20,
+        styles: { fontSize: fontSize }
+    });
+    let grandTotal = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+    doc.setFontSize(fontSize);
+    doc.text(`Grand Total: ${formatCurrency(grandTotal)}`, 14, doc.lastAutoTable.finalY + 10);
+    doc.text(`Budget: ${formatCurrency(budget)}`, 14, doc.lastAutoTable.finalY + 20);
+    doc.text(`Remaining: ${formatCurrency(budget - grandTotal)}`, 14, doc.lastAutoTable.finalY + 30);
+    doc.save("shopping-list.pdf");
+});
 
-        document.getElementById("exportPDF").addEventListener("click", () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Shopping List", 14, 15);
-            doc.autoTable({
-                head: [['Item', 'Qty', 'Unit Price', 'Total']],
-                body: items.map(item => [
-                    item.name,
-                    item.quantity,
-                    formatCurrency(item.price),
-                    formatCurrency(item.quantity * item.price)
-                ]),
-                startY: 20
-            });
-            let grandTotal = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
-            doc.text(`Grand Total: ${formatCurrency(grandTotal)}`, 14, doc.lastAutoTable.finalY + 10);
-            doc.text(`Budget: ${formatCurrency(budget)}`, 14, doc.lastAutoTable.finalY + 20);
-            doc.text(`Remaining: ${formatCurrency(budget - grandTotal)}`, 14, doc.lastAutoTable.finalY + 30);
-            doc.save("shopping-list.pdf");
-        });
-
-        loadItems();
-        updateDisplay();
-    </script>
+loadItems();
+updateDisplay();
+</script>
 </body>
 </html>
